@@ -6,6 +6,7 @@
  */
 package org.thotheolh.sc.cryptolib.jcchacha20;
 
+import javacard.framework.JCSystem;
 import javacardx.framework.util.ArrayLogic;
 
 /**
@@ -14,24 +15,25 @@ import javacardx.framework.util.ArrayLogic;
  */
 public class ChaCha20 {
 
-    private byte[] matrix0 = new byte[4];
-    private byte[] matrix1 = new byte[4];
-    private byte[] matrix2 = new byte[4];
-    private byte[] matrix3 = new byte[4];
-    private byte[] matrix4 = new byte[4];
-    private byte[] matrix5 = new byte[4];
-    private byte[] matrix6 = new byte[4];
-    private byte[] matrix7 = new byte[4];
-    private byte[] matrix8 = new byte[4];
-    private byte[] matrix9 = new byte[4];
-    private byte[] matrix10 = new byte[4];
-    private byte[] matrix11 = new byte[4];
-    private byte[] matrix12 = new byte[4];
-    private byte[] matrix13 = new byte[4];
-    private byte[] matrix14 = new byte[4];
-    private byte[] matrix15 = new byte[4];
-    private byte[] buffer = new byte[4];
-    private byte[] inputInitState = new byte[64];
+    private byte[] matrix0 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix1 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix2 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix3 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix4 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix5 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix6 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix7 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix8 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix9 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix10 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix11 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix12 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix13 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix14 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] matrix15 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] buffer = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
+    private byte[] inputInitState = JCSystem.makeTransientByteArray((short) 64, JCSystem.CLEAR_ON_RESET);
+    private short[] sBuff = JCSystem.makeTransientShortArray((short) 1, JCSystem.CLEAR_ON_RESET);
 
     public ChaCha20() {
     }
@@ -185,7 +187,7 @@ public class ChaCha20 {
 
     public boolean encrypt(byte[] key, short keyOffset, byte[] nonce,
             short nonceOffset, byte[] counter, short ctrOffset, byte[] input,
-            short inOffset, short length, short sBuff, byte[] output, short outOffset) {
+            short inOffset, short length, byte[] output, short outOffset) {
 
         // Setup internal state
         if (init(key, keyOffset, nonce, nonceOffset, counter, ctrOffset)) {
@@ -324,9 +326,9 @@ public class ChaCha20 {
                 littleEndian(inputInitState, (short) 56, buffer, (short) 0);
                 littleEndian(inputInitState, (short) 60, buffer, (short) 0);
 
-                for (sBuff = 0; sBuff < 64; sBuff++) {
+                for (sBuff[0] = 0; sBuff[0] < 64; sBuff[0]++) {
                     if (length > 0) {
-                        output[(short) (outOffset + sBuff)] = (byte) (input[(short) (inOffset + sBuff)] ^ inputInitState[sBuff]);
+                        output[(short) (outOffset + sBuff[0])] = (byte) (input[(short) (inOffset + sBuff[0])] ^ inputInitState[sBuff[0]]);
                         length--;
                     } else {
                         break;
@@ -343,8 +345,8 @@ public class ChaCha20 {
 
     public boolean decrypt(byte[] key, short keyOffset, byte[] nonce,
             short nonceOffset, byte[] counter, short ctrOffset, byte[] input,
-            short inOffset, short length, short sBuff, byte[] output, short outOffset) {
-        return encrypt(key, keyOffset, nonce, nonceOffset, counter, ctrOffset, input, inOffset, sBuff, length, output, outOffset);
+            short inOffset, short length, byte[] output, short outOffset) {
+        return encrypt(key, keyOffset, nonce, nonceOffset, counter, ctrOffset, input, inOffset, length, output, outOffset);
     }
 
     public byte[] getCurrentKeyStreamState() {
