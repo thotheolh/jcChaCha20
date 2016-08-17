@@ -32,7 +32,7 @@ public class ChaCha20 {
     private byte[] matrix14 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
     private byte[] matrix15 = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
     private byte[] buffer = JCSystem.makeTransientByteArray((short) 4, JCSystem.CLEAR_ON_RESET);
-    private byte[] inputInitState = JCSystem.makeTransientByteArray((short) 64, JCSystem.CLEAR_ON_RESET);
+    private byte[] inputInitState = JCSystem.makeTransientByteArray((short) 64, JCSystem.CLEAR_ON_RESET); // original keystream
     private short[] sBuff = JCSystem.makeTransientShortArray((short) 1, JCSystem.CLEAR_ON_RESET);
 
     public ChaCha20() {
@@ -88,6 +88,14 @@ public class ChaCha20 {
         MathUtil.rotl32(b, (short) 0, (short) 7, buffer, (short) 0);
     }
 
+    /**
+     * Converts 32-bit word into little endian format.
+     * 
+     * @param data
+     * @param dataOffset
+     * @param buff
+     * @param buffOffset 
+     */
     private void littleEndian(byte[] data, short dataOffset, byte[] buff, short buffOffset) {
         ArrayLogic.arrayCopyRepackNonAtomic(data, dataOffset, (short) 4, buff, buffOffset);
         data[dataOffset] = buff[(short) (buffOffset + 3)];
@@ -96,6 +104,17 @@ public class ChaCha20 {
         data[(short) (dataOffset + 3)] = buff[buffOffset];
     }
 
+    /**
+     * Initializes cryptographic parameters.
+     * 
+     * @param key
+     * @param keyOffset
+     * @param nonce
+     * @param nonceOffset
+     * @param counter
+     * @param ctrOffset
+     * @return 
+     */
     private boolean init(byte[] key, short keyOffset, byte[] nonce, short nonceOffset, byte[] counter, short ctrOffset) {
         if (((short) (key.length - keyOffset) >= (short) 32) && ((short) (nonce.length - nonceOffset) >= (short) 12) && ((short) (counter.length - ctrOffset) >= (short) 4)) {
             // Set constant into matrcies
@@ -134,7 +153,7 @@ public class ChaCha20 {
             inputInitState[14] = (byte) 0x65;
             inputInitState[15] = (byte) 0x74;
 
-            // Set key into matrices
+            // Set key into matrices then into little endian format
             ArrayLogic.arrayCopyRepackNonAtomic(key, keyOffset, (short) 4, matrix4, (short) 0);
             ArrayLogic.arrayCopyRepackNonAtomic(key, (short) (keyOffset + 4), (short) 4, matrix5, (short) 0);
             ArrayLogic.arrayCopyRepackNonAtomic(key, (short) (keyOffset + 8), (short) 4, matrix6, (short) 0);
@@ -168,7 +187,7 @@ public class ChaCha20 {
             // Set counter into inputInitState
             ArrayLogic.arrayCopyRepackNonAtomic(counter, ctrOffset, (short) 4, inputInitState, (short) 48);
 
-            // Set nonce into matrices
+            // Set nonce into matrices then into little endian format
             ArrayLogic.arrayCopyRepackNonAtomic(nonce, nonceOffset, (short) 4, matrix13, (short) 0);
             ArrayLogic.arrayCopyRepackNonAtomic(nonce, (short) (nonceOffset + 4), (short) 4, matrix14, (short) 0);
             ArrayLogic.arrayCopyRepackNonAtomic(nonce, (short) (nonceOffset + 8), (short) 4, matrix15, (short) 0);
@@ -185,6 +204,22 @@ public class ChaCha20 {
         return false;
     }
 
+    /**
+     * Encryption function which also serves as decryption function.
+     * 
+     * @param key
+     * @param keyOffset
+     * @param nonce
+     * @param nonceOffset
+     * @param counter
+     * @param ctrOffset
+     * @param input
+     * @param inOffset
+     * @param length
+     * @param output
+     * @param outOffset
+     * @return 
+     */
     public boolean encrypt(byte[] key, short keyOffset, byte[] nonce,
             short nonceOffset, byte[] counter, short ctrOffset, byte[] input,
             short inOffset, short length, byte[] output, short outOffset) {
@@ -291,7 +326,7 @@ public class ChaCha20 {
                 quarterRound(matrix2, matrix7, matrix8, matrix13);
                 quarterRound(matrix3, matrix4, matrix9, matrix14);
 
-                // Update inputInitState by mod32Add matrices
+                // Update inputInitState (keystream) by mod32Add matrices
                 MathUtil.mod32Add(inputInitState, (short) 0, matrix0, (short) 0, inputInitState, (short) 0);
                 MathUtil.mod32Add(inputInitState, (short) 4, matrix1, (short) 0, inputInitState, (short) 4);
                 MathUtil.mod32Add(inputInitState, (short) 8, matrix2, (short) 0, inputInitState, (short) 8);
@@ -309,6 +344,7 @@ public class ChaCha20 {
                 MathUtil.mod32Add(inputInitState, (short) 56, matrix14, (short) 0, inputInitState, (short) 56);
                 MathUtil.mod32Add(inputInitState, (short) 60, matrix15, (short) 0, inputInitState, (short) 60);
 
+                // Convert inputInitState (keystream) into little endian format
                 littleEndian(inputInitState, (short) 0, buffer, (short) 0);
                 littleEndian(inputInitState, (short) 4, buffer, (short) 0);
                 littleEndian(inputInitState, (short) 8, buffer, (short) 0);
@@ -326,6 +362,7 @@ public class ChaCha20 {
                 littleEndian(inputInitState, (short) 56, buffer, (short) 0);
                 littleEndian(inputInitState, (short) 60, buffer, (short) 0);
 
+                // Loops through every byte of plaintext/ciphertext and then XOR it with finalized keystream
                 for (sBuff[0] = 0; sBuff[0] < 64; sBuff[0]++) {
                     if (length > 0) {
                         output[(short) (outOffset + sBuff[0])] = (byte) (input[(short) (inOffset + sBuff[0])] ^ inputInitState[sBuff[0]]);
@@ -343,12 +380,33 @@ public class ChaCha20 {
         return false;
     }
 
+    /**
+     * Decryption function.
+     * 
+     * @param key
+     * @param keyOffset
+     * @param nonce
+     * @param nonceOffset
+     * @param counter
+     * @param ctrOffset
+     * @param input
+     * @param inOffset
+     * @param length
+     * @param output
+     * @param outOffset
+     * @return 
+     */
     public boolean decrypt(byte[] key, short keyOffset, byte[] nonce,
             short nonceOffset, byte[] counter, short ctrOffset, byte[] input,
             short inOffset, short length, byte[] output, short outOffset) {
         return encrypt(key, keyOffset, nonce, nonceOffset, counter, ctrOffset, input, inOffset, length, output, outOffset);
     }
 
+    /**
+     * Reveals current keystream state. Disable this code in production environment to prevent leaking of keystream state by accident.
+     * 
+     * @return keystream in current state.
+     */
     public byte[] getCurrentKeyStreamState() {
         return inputInitState;
     }
