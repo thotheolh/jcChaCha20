@@ -8,7 +8,7 @@ LICENSE
 ad397fe13f79a219a6d7045808764653614db9314c38970d9cf1c48c96d79c05
 
 src\org\thotheolh\sc\cryptolib\jcchacha20\jcChaCha20.java
-baf7cb7b9b1250f9a6607c50ebe8c83f345cbcffd0ca21e861b60e840ff3595e
+51c6d396c61c74f2a07c369ca555d4b578f11e887da74aa2887aaa2491806a79
 
 src\org\thotheolh\sc\cryptolib\jcchacha20\ChaCha20.java
 3c610f8453191d1f495e8cee69506fd5def82a9829fd58d202952992cd7c19d5
