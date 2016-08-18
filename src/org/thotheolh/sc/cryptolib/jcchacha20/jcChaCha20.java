@@ -121,6 +121,9 @@ public class jcChaCha20 extends Applet {
 
                                 // Increment already processed bytes counter
                                 sBuff[1] += 64;
+
+                                // Increment ChaCha20's counter while using the b2 array that stores cryptographic result as the carry counter
+                                increment(counter, (short) 0, b2[255]);
                             }
                         }
 
@@ -183,6 +186,9 @@ public class jcChaCha20 extends Applet {
 
                                 // Increment already processed bytes counter
                                 sBuff[1] += 64;
+
+                                // Increment ChaCha20's counter while using the b2 array that stores cryptographic result as the carry counter
+                                increment(counter, (short) 0, b2[255]);
                             }
                         }
 
@@ -202,6 +208,39 @@ public class jcChaCha20 extends Applet {
             }
         } else {
             ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+        }
+    }
+
+    public void increment(byte[] bCtrArray, short offset, byte carry) {
+        carry = 0x00;
+        if ((bCtrArray[(short) (offset + 3)] & 0xFF) < 255) {
+            bCtrArray[(short) (offset + 3)] += 1;
+        } else {
+            bCtrArray[(short) (offset + 3)] = 0x00;
+            carry = 1;
+        }
+        if (carry > 0) {
+            if ((bCtrArray[(short) (offset + 2)] & 0xFF) < 255) {
+                bCtrArray[(short) (offset + 2)] += carry;
+                carry = 0;
+            } else {
+                bCtrArray[(short) (offset + 2)] = 0x00;
+                carry = 1;
+            }
+        }
+        if (carry > 0) {
+            if ((bCtrArray[(short) (offset + 1)] & 0xFF) < 255) {
+                bCtrArray[(short) (offset + 1)] += carry;
+                carry = 0;
+            } else {
+                bCtrArray[(short) (offset + 1)] = 0x00;
+                carry = 1;
+            }
+        }
+        if (carry > 0) {
+            if ((bCtrArray[offset] & 0xFF) < 255) {
+                bCtrArray[offset] += carry;
+            }
         }
     }
 }
